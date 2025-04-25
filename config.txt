@@ -1,0 +1,46 @@
+# Bakery Simulation Configuration File
+
+# Products
+num_bread_types = 3
+num_sandwiches = 2
+num_cake_flavors = 3
+num_sweets = 4
+num_sweet_patisseries = 2
+num_savory_patisseries = 2
+
+# Employees
+num_chefs = 12
+num_bakers = 6
+num_sellers = 3
+num_supply_workers = 2
+
+# Ingredient Stock Ranges (min-max)
+wheat_range = 50-100
+yeast_range = 10-20
+butter_range = 20-40
+milk_range = 30-60
+sugar_salt_range = 15-30
+sweet_items_range = 10-25
+cheese_range = 15-30
+salami_range = 15-30
+
+# Prices (per item)
+price_bread = 1.0
+price_sandwich = 3.0
+price_cake = 5.0
+price_sweet = 2.5
+price_sweet_patisserie = 4.0
+price_savory_patisserie = 4.0
+
+# Thresholds
+max_frustrated_customers = 5
+max_complaints = 3
+max_missing_item_requests = 4
+profit_goal = 100.0
+simulation_duration_minutes = 15
+
+# Customer Behavior
+customer_arrival_interval_ms = 1000
+max_wait_time_ms = 3000
+complaint_chance_percent = 10
+leave_if_unhappy_percent = 25
