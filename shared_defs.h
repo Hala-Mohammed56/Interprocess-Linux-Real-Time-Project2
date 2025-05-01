@@ -9,16 +9,24 @@ typedef struct {
 } Store;
 
 typedef struct {
-    int sandwiches_ready;
+    int paste_ready;
     int cakes_ready;
+    int sandwiches_ready;
     int sweets_ready;
-    int chefs_status[16]; // 1 = busy, 0 = idle
+    int sweet_patisseries_ready;
+    int savory_patisseries_ready;
+
+    int chefs_status[6]; // 1 = busy, 0 = idle (6 chefs)
 } Kitchen;
 
 typedef struct {
     int bread_in_oven;
-    int patisseries_in_oven;
-    int oven_status[4]; // 1 = busy, 0 = free
+    int cakes_in_oven;
+    int sweets_in_oven;
+    int sweet_patisseries_in_oven;
+    int savory_patisseries_in_oven;
+    // 0 = bread, 1 = sweet/savory patisseries, 2 = cakes/sweets
+    int oven_status[3]; // 1 = busy, 0 = free
 } Oven;
 
 typedef struct {
