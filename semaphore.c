@@ -10,13 +10,24 @@ union semun {
 };
 
 int create_semaphore(key_t key) {
-    int id = semget(key, 1, IPC_CREAT | 0666);
+    int id;
+
+    id = semget(key, 1, IPC_CREAT | IPC_EXCL | 0666);
+    if (id != -1) {
+        printf("[semaphore] created new, initializing to 1...\n");
+        init_semaphore(id, 1);
+        return id;
+    }
+
+    id = semget(key, 1, 0666);
     if (id == -1) {
         perror("semget failed");
         exit(1);
     }
+
     return id;
 }
+
 
 void init_semaphore(int semid, int value) {
     union semun arg;
