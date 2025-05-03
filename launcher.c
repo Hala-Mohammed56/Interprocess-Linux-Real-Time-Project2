@@ -1,78 +1,80 @@
 #include "headers.h"
-#include <sys/wait.h>   // for wait()
+#include <sys/wait.h>
 
-int main() {
-    printf("🚀 Launcher: Starting the Bakery Simulation!\n");
+int main()
+{
+    printf(" Launcher: Starting the Bakery Simulation!\n");
 
-    // 🧹 Clean old IPC resources
+    //  Clean old IPC resources
     unlink("/tmp/chef_to_baker");
     unlink("/tmp/baker_to_seller");
     sem_unlink("/oven_semaphore");
 
-    // 🔧 Create oven semaphore
+    //  Create oven semaphore and shared memory
     system("./main");
 
-    // 🧑‍🍳 Start Baker(s)
+    //  Start Baker(s)
     pid_t pid_baker1 = fork();
-    if (pid_baker1 == 0) {
-        execl("./baker", "baker", "bread", (char*)NULL); // Bread bakers
-        perror("Failed to start baker (bread)");
-        exit(EXIT_FAILURE);
-    }
+    if (pid_baker1 == 0)
+        execl("./baker", "baker", "bread", NULL);
 
     pid_t pid_baker2 = fork();
-    if (pid_baker2 == 0) {
-        execl("./baker", "baker", "cake", (char*)NULL); // Cake bakers
-        perror("Failed to start baker (cake)");
-        exit(EXIT_FAILURE);
-    }
+    if (pid_baker2 == 0)
+        execl("./baker", "baker", "cake", NULL);
 
     pid_t pid_baker3 = fork();
-    if (pid_baker3 == 0) {
-        execl("./baker", "baker", "sweets", (char*)NULL); // Sweets bakers
-        perror("Failed to start baker (sweets)");
-        exit(EXIT_FAILURE);
-    }
+    if (pid_baker3 == 0)
+        execl("./baker", "baker", "sweets", NULL);
 
-    sleep(1); // wait for bakers to be ready
+    sleep(1); // to let bakers initialize
 
-    // 🛒 Start Seller
+    // Start Seller
     pid_t pid_seller = fork();
-    if (pid_seller == 0) {
-        execl("./seller", "seller", (char*)NULL);
-        perror("Failed to start seller");
-        exit(EXIT_FAILURE);
-    }
+    if (pid_seller == 0)
+        execl("./seller", "seller", NULL);
 
-    sleep(1); // wait for seller to be ready
+    sleep(1); // to let seller initialize
 
-    // 🧑‍🍳 Start Chef(s)
+    // Start Chef
     pid_t pid_chef1 = fork();
-    if (pid_chef1 == 0) {
-        execl("./chef", "chef", "paste", (char*)NULL); // Paste team
-        perror("Failed to start chef (paste)");
-        exit(EXIT_FAILURE);
-    }
+    if (pid_chef1 == 0)
+        execl("./chef", "chef", "paste", NULL);
 
     pid_t pid_chef2 = fork();
-    if (pid_chef2 == 0) {
-        execl("./chef", "chef", "cake", (char*)NULL); // Cake team
-        perror("Failed to start chef (cake)");
-        exit(EXIT_FAILURE);
-    }
+    if (pid_chef2 == 0)
+        execl("./chef", "chef", "cake", NULL);
 
     pid_t pid_chef3 = fork();
-    if (pid_chef3 == 0) {
-        execl("./chef", "chef", "sweets", (char*)NULL); // Sweets team
-        perror("Failed to start chef (sweets)");
-        exit(EXIT_FAILURE);
+    if (pid_chef3 == 0)
+        execl("./chef", "chef", "sweets", NULL);
+
+    // Start Multiple Customers
+    for (int i = 0; i < 4; i++)
+    {
+        pid_t pid = fork();
+        if (pid == 0)
+        {
+            char id[10];
+            snprintf(id, sizeof(id), "%d", i + 1);
+            execl("./customer", "customer", id, NULL);
+            exit(0); // fallback if execl fails
+        }
     }
 
-    // 📌 Parent waits for all children
-    for (int i = 0; i < 7; i++) {
+    // Wait for seller to finish (termination condition)
+    waitpid(pid_seller, NULL, 0);
+
+    // Kill all other children after seller exits
+    kill(pid_baker1, SIGINT);
+    kill(pid_baker2, SIGINT);
+    kill(pid_baker3, SIGINT);
+    kill(pid_chef1, SIGINT);
+    kill(pid_chef2, SIGINT);
+    kill(pid_chef3, SIGINT);
+
+    for (int i = 0; i < 6 + 4; i++) // 6 = chefs+bakers, 4 = customers
         wait(NULL);
-    }
 
-    printf("✅ Launcher: All processes finished.\n");
+    printf(" Launcher: Simulation ended and all processes cleaned up.\n");
     return 0;
 }

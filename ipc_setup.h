@@ -1,25 +1,25 @@
 #ifndef IPC_SETUP_H
 #define IPC_SETUP_H
-
+#include "constants.h"
 #include <semaphore.h>
 #include <stddef.h> // For size_t
 
-// Initialize the oven semaphore (create if not exists)
-sem_t* init_oven_semaphore();
+// Named Semaphore for oven
+#define OVEN_SEM_NAME "/oven_semaphore"
 
-// Get an existing oven semaphore (no create)
-sem_t* get_oven_semaphore();
+// Shared memory names (POSIX identifiers)
+#define SHM_NAME_READY_ITEMS "/shm_ready_items"
 
-// Initialize shared memory (create and map)
-void* init_shared_memory(const char* name, size_t size);
+// Oven semaphore
+sem_t *init_oven_semaphore();
+sem_t *get_oven_semaphore();
 
-// Attach to existing shared memory (read/write access)
-void* attach_shared_memory(const char* name, size_t size);
+// Shared memory setup
+void *init_shared_memory(const char *name, size_t size);
+void *attach_shared_memory(const char *name, size_t size);
+void unlink_shared_memory(const char *name);
 
-// Unlink shared memory
-void unlink_shared_memory(const char* name);
-
-// Clean up both FIFO and semaphore (if needed)
+// Final cleanup (semaphores + FIFOs + SHMs)
 void cleanup_ipc();
 
 #endif

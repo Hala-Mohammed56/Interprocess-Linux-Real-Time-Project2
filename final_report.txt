@@ -1,0 +1,16 @@
+Final Simulation Report
+Timestamp: Fri May  2 22:41:09 2025
+
+----------------------------
+Profit: $0.00
+Complaints: 0
+Frustrated Customers: 0
+Total Customers: 0
+
+Ready Items:
+- Bread: 0
+- Cake: 0
+- Sweets: 0
+- Patisserie: 0
+
+Ovens in Use: 0
