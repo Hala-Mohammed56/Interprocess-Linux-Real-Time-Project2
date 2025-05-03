@@ -1,6 +1,9 @@
 #ifndef HEADERS_H
 #define HEADERS_H
 
+// Common headers for all bakery simulation processes
+// Contains standard and IPC-related includes
+
 // Standard C Libraries
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,8 +15,8 @@
 
 // IPC-related
 #include <sys/stat.h>     // For mkfifo
-#include <sys/mman.h>     // For shared memory
-#include <semaphore.h>    // For semaphores
+#include <sys/ipc.h>      // For IPC keys
+#include <sys/shm.h>      // For shmget/shmat System V
+#include <semaphore.h>    // For POSIX semaphores
 
 #endif
-

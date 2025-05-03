@@ -1,46 +1,48 @@
 #ifndef SHARED_DEFS_H
 #define SHARED_DEFS_H
 
-#define SHM_KEY 0x1234
+#define SHM_KEY 0x2025  // Unique shared memory key
 
+// 🧺 Store: raw ingredient stock (used by chefs)
 typedef struct {
-    int wheat, yeast, butter, milk;
-    int sugar_salt, sweet_items, cheese, salami;
+    int wheat;
+    int yeast;
+    int butter;
+    int milk;
+    int sugar;
+    int salt;
+    int sweet_items;
+    int cheese;
+    int salami;
 } Store;
 
+// ✅ ReadyItems: finished items ready for selling
 typedef struct {
-    int paste_ready;
-    int cakes_ready;
-    int sandwiches_ready;
+    int bread_ready;
+    int cake_ready;
     int sweets_ready;
-    int sweet_patisseries_ready;
-    int savory_patisseries_ready;
+    int patisserie_ready;
+} ReadyItems;
 
-    int chefs_status[6]; // 1 = busy, 0 = idle (6 chefs)
-} Kitchen;
-
+// 🔥 Oven: oven usage status
 typedef struct {
-    int bread_in_oven;
-    int cakes_in_oven;
-    int sweets_in_oven;
-    int sweet_patisseries_in_oven;
-    int savory_patisseries_in_oven;
-    // 0 = bread, 1 = sweet/savory patisseries, 2 = cakes/sweets
-    int oven_status[3]; // 1 = busy, 0 = free
+    int ovens_in_use;
 } Oven;
 
+// 💵 Sales: profit + customer stats
 typedef struct {
-    int customers_served;
-    int customers_waiting;
+    double profit;
     int complaints;
     int frustrated_customers;
+    int total_customers;
 } Sales;
 
+// 🧠 Full shared memory structure
 typedef struct {
-    Store store_data;
-    Kitchen kitchen_data;
-    Oven oven_data;
-    Sales sales_data;
-} SharedMemory;
+    Store store;           // Ingredients for chefs
+    ReadyItems ready;      // Baked items for sellers
+    Oven oven;             // Baking status
+    Sales sales;           // Metrics
+} BakerySharedData;
 
-#endif
+#endif // SHARED_DEFS_H
