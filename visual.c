@@ -3,11 +3,35 @@
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "shared_defs.h"
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #define WIDTH 1280
 #define HEIGHT 720
 
+
+SharedMemory* shm_ptr = NULL;
+
 GLuint bg_texture;
+
+//function to attach to shared memory
+void attach_shared_memory() {
+    int shmid = shmget(SHM_KEY, sizeof(SharedMemory), 0666);
+    if (shmid == -1) {
+        perror("shmget failed");
+        exit(1);
+    }
+
+    shm_ptr = (SharedMemory*) shmat(shmid, NULL, 0);
+    if (shm_ptr == (void*)-1) {
+        perror("shmat failed");
+        exit(1);
+    }
+}
+
 
 // Load an image and return the OpenGL texture ID
 GLuint loadTexture(const char* filename) {
@@ -207,9 +231,16 @@ void drawStorageBlock() {
     };
 
     int values[8] = {
-        20, 10, 5, 15,
-        7, 8, 3, 12
+        shm_ptr->store_data.wheat,
+        shm_ptr->store_data.yeast,
+        shm_ptr->store_data.butter,
+        shm_ptr->store_data.milk,
+        shm_ptr->store_data.sugar_salt,
+        shm_ptr->store_data.sweet_items,
+        shm_ptr->store_data.cheese,
+        shm_ptr->store_data.salami
     };
+    
 
     float boxW = (storageW - 50) / 2.0;
     float boxH = (storageH - 60) / 4.0;
@@ -288,7 +319,15 @@ void drawKitchenBlock() {
         "Savory Patisseries Team"
     };
 
-    int producedCounts[6] = {5, 8, 3, 12, 6, 4}; // مؤقتًا أرقام ثابتة
+    int producedCounts[6] = {
+        shm_ptr->kitchen_data.paste_ready,
+        shm_ptr->kitchen_data.cakes_ready,
+        shm_ptr->kitchen_data.sandwiches_ready,
+        shm_ptr->kitchen_data.sweets_ready,
+        shm_ptr->kitchen_data.sweet_patisseries_ready,
+        shm_ptr->kitchen_data.savory_patisseries_ready
+    };
+    
 
     // خلفية المطبخ
     glColor3f(0.75, 0.85, 0.95);
@@ -447,8 +486,12 @@ void drawOvenSection() {
         "Bake Bread"
     };
 
-    int producedCounts[3] = {7, 4, 10}; // أرقام مؤقتة للإنتاج داخل الفرن
-
+    int producedCounts[3] = {
+        shm_ptr->oven_data.cakes_in_oven + shm_ptr->oven_data.sweets_in_oven,
+        shm_ptr->oven_data.sweet_patisseries_in_oven + shm_ptr->oven_data.savory_patisseries_in_oven,
+        shm_ptr->oven_data.bread_in_oven
+    };
+    
     // خلفية القسم
     glColor3f(0.2, 0.2, 0.25);  // رمادي غامق
     glBegin(GL_QUADS);
@@ -620,7 +663,7 @@ void drawSellerSection() {
     float bodyW = 16 * 3;
     float bodyH = 35 * 3;
 
-    // طاقية صفراء
+    // طاقية
     glColor3f(1.0, 0.0, 0.0);
     drawCircle(px, py + bodyH / 2 + 24, 10, 24);
 
@@ -653,7 +696,7 @@ void drawSellerSection() {
         glVertex2f(px + bodyW / 2, py - bodyH / 4);
     glEnd();
 
-    // الطاولة (أمام البائع)
+    // 🔶 رسم الطاولة أولاً
     glColor3f(0.4, 0.2, 0.0);
     glBegin(GL_QUADS);
         glVertex2f(tableX, tableY - 50);
@@ -662,7 +705,14 @@ void drawSellerSection() {
         glVertex2f(tableX, tableY + tableH);
     glEnd();
 
+    // 💰 عرض الدخل الحالي فوق الطاولة
+    char salesText[32];
+    sprintf(salesText, "Sales: %d JD", shm_ptr->sales_data.daily_sales_dinar);
+    glColor3f(0, 0, 0);  // أسود
+    glRasterPos2f(tableX + 40, tableY + tableH - 40);
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char*)salesText);
 
+    // لوحة الطلبات الجانبية
     float boardX = startX + sectionW / 2 + 10; 
     float boardY = startY + 20;
     float boardW = sectionW / 2 - 30;
@@ -676,63 +726,50 @@ void drawSellerSection() {
         glVertex2f(boardX, boardY + boardH);
     glEnd();
 
- 
-    // متغير خارجي (خليه global أو حدثه حسب الإنجاز)
-    int totalOrdersMade = 0;
+    // عرض الطلبات كبطاقات (كحد أقصى 9)
+    int max_orders = shm_ptr->sales_data.order_count;
+    if (max_orders > 9) max_orders = 9;
 
-    // عدد الطلبات التي تظهر حالياً
-    int maxOrders = 8;
-    int cols = 3;
-    int rows = (maxOrders + cols - 1) / cols;
-    float paperW = boardW / cols - 10;
-    float paperH = boardH / 3 - 10;
+    float boxW = 70;
+    float boxH = 50;
+    float spacing = 10;
 
-    for (int i = 0; i < maxOrders; i++) {
-        int r = i / cols;
-        int c = i % cols;
+    for (int i = 0; i < max_orders; i++) {
+        Order o = shm_ptr->sales_data.current_orders[i];
 
-        float paperX = boardX + c * (paperW + 5) + 10;
-        float paperY = boardY + boardH - (r + 1) * (paperH + 5) - 5;
+        float cardX = boardX + (i % 3) * (boxW + spacing);
+        float cardY = boardY + boardH - (i / 3 + 1) * (boxH + spacing);
 
-        // الورقة
-        glColor3f(0.95, 0.95, 0.8);
+        // بطاقة الطلب
+        glColor3f(0.95, 0.9, 0.6);  // لون البطاقة
         glBegin(GL_QUADS);
-            glVertex2f(paperX, paperY);
-            glVertex2f(paperX + paperW, paperY);
-            glVertex2f(paperX + paperW, paperY + paperH);
-            glVertex2f(paperX, paperY + paperH);
+            glVertex2f(cardX, cardY);
+            glVertex2f(cardX + boxW, cardY);
+            glVertex2f(cardX + boxW, cardY + boxH);
+            glVertex2f(cardX, cardY + boxH);
         glEnd();
 
-        // الدبوس
-        glColor3f(1, 0, 0);
-        drawCircle(paperX + paperW / 2, paperY + paperH - 4, 3, 20);
+        // نقطة صغيرة للتزيين
+        glColor3f(1.0, 0.0, 0.0);
+        drawCircle(cardX + 5, cardY + boxH - 5, 3, 12);
 
-        // رقم الطلب
-        char orderID[16];
-        int orderNumber = totalOrdersMade + i + 1;
-        sprintf(orderID, "#%d", orderNumber);
-        glColor3f(0, 0, 0);
-        glRasterPos2f(paperX + 5, paperY + paperH - 10);
-
-        // محتوى الطلب
+        // النص
         char line1[32], line2[32];
-        sprintf(line1, "Cake: %d", (i + 1) % 5 + 1);
-        sprintf(line2, "Bread: %d", (i + 3) % 4 + 1);
-        for (int b = 0; b < 2; b++) {
-            float shift = b * 0.6f;
-            glRasterPos2f(paperX + 5 + shift, paperY + paperH - 20);
-            glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)orderID);
-        
-            glRasterPos2f(paperX + 5 + shift, paperY + paperH - 35);
-            glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)line1);
-        
-            glRasterPos2f(paperX + 5 + shift, paperY + paperH - 50);
-            glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)line2);
-        }
-        
-    }
+        sprintf(line1, "#%d", o.id);
+        sprintf(line2, "Cake:%d Bread:%d", o.cake_qty, o.bread_qty);
 
+        glColor3f(0, 0, 0);
+        glRasterPos2f(cardX + 10, cardY + boxH - 15);
+        glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)line1);
+
+        glRasterPos2f(cardX + 10, cardY + boxH - 30);
+        glutBitmapString(GLUT_BITMAP_HELVETICA_12, (const unsigned char*)line2);
+    }
 }
+
+
+
+
 
 
 void display() {
@@ -769,12 +806,13 @@ int main(int argc, char** argv) {
     glMatrixMode(GL_MODELVIEW); // 🔴 ضروري للـ glLoadIdentity داخل display
     glLoadIdentity();
 
-    bg_texture = loadTexture("background.png"); 
+    //bg_texture = loadTexture("background.png"); 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glutDisplayFunc(display);
     glutTimerFunc(1000, update, 0);
+    attach_shared_memory();
     glutMainLoop();
 
     return 0;
